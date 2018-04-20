@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="Wangql的碎碎念">
 <meta property="og:description" content="描述TSM的恢复">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-04-20T11:43:25.513Z">
+<meta property="og:updated_time" content="2018-04-20T11:49:26.970Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TSM客户端基于命令行的文件恢复测试">
 <meta name="twitter:description" content="描述TSM的恢复">
@@ -96,8 +96,7 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>本文主要描述TSM备份普通文件后，基于命令行的恢复过程。<br>测试环境：<br>RHEL5.5/TSM5.5</p>
-<p>#场景一：普通文件恢复测试</p>
-<ol>
+<h1 id="场景一：普通文件恢复测试"><a href="#场景一：普通文件恢复测试" class="headerlink" title="场景一：普通文件恢复测试"></a>场景一：普通文件恢复测试</h1><ol>
 <li><p>在恢复节点执行查询，这里查到的文件目录是根目录</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@rhel55 ~]# dsmc q file</span><br><span class="line">IBM Tivoli Storage Manager</span><br><span class="line">Command Line Backup-Archive Client Interface</span><br><span class="line">  Client Version 6, Release 2, Level 1.0  </span><br><span class="line">  Client date/time: 02/28/2018 10:31:53</span><br><span class="line">(c) Copyright by IBM Corporation and other(s) 1990, 2010. All Rights Reserved.</span><br><span class="line"></span><br><span class="line">Node Name: TSM</span><br><span class="line">Session established with server SERVER1: Linux/x86_64</span><br><span class="line">  Server Version 5, Release 5, Level 0.0</span><br><span class="line">  Server date/time: 02/28/2018 10:31:53  Last access: 02/28/2018 10:30:59</span><br><span class="line"></span><br><span class="line">  #    Last Incr Date      Type    File Space Name</span><br><span class="line">---    --------------      ----    ---------------</span><br><span class="line">  1  00/00/0  00:00:00  EXT3    /</span><br></pre></td></tr></table></figure>
 </li>
@@ -115,8 +114,7 @@
 </li>
 </ol>
 <p>恢复的内容如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@rhel55 backup]# cd /backup/temp/</span><br><span class="line">[root@rhel55 temp]# ls</span><br><span class="line">backup</span><br><span class="line">[root@rhel55 temp]# ls backup/</span><br><span class="line">anaconda-ks.cfg  dsmerror.log  install.log  install.log.syslog</span><br></pre></td></tr></table></figure></p>
-<p>#场景二：本地文件删除后的恢复测试</p>
-<ol>
+<h1 id="场景二：本地文件删除后的恢复测试"><a href="#场景二：本地文件删除后的恢复测试" class="headerlink" title="场景二：本地文件删除后的恢复测试"></a>场景二：本地文件删除后的恢复测试</h1><ol>
 <li>以/backup目录中的abc.tar为例<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@rhel55 backup]# ls -l</span><br><span class="line">total 152</span><br><span class="line">-rw-r--r-- 1 root root 71680 Feb 28 14:20 abc.tar</span><br><span class="line">-rw------- 1 root root  1611 Feb 28 10:30 anaconda-ks.cfg</span><br><span class="line">-rw-r--r-- 1 root root    72 Feb 28 10:36 dsmerror.log</span><br><span class="line">-rw-r--r-- 1 root root 55431 Feb 28 10:29 install.log</span><br><span class="line">-rw-r--r-- 1 root root  4288 Feb 28 10:30 install.log.syslog</span><br></pre></td></tr></table></figure>
 </li>
 </ol>
@@ -138,7 +136,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://wangql.cc/2018/04/20/TSM客户端基于命令行的文件恢复测试/" data-id="cjg7vzads0000lwqmjrodvbk7" class="article-share-link">Share</a>
+      <a data-url="http://wangql.cc/2018/04/20/TSM客户端基于命令行的文件恢复测试/" data-id="cjg7w7089000024qm1covmcwd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/TSM/">TSM</a></li></ul>

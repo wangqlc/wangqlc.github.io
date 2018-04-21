@@ -70,6 +70,143 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-使用dd命令解决AIX系统中PVID的异常丢失问题" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/04/21/使用dd命令解决AIX系统中PVID的异常丢失问题/" class="article-date">
+  <time datetime="2018-04-21T11:16:40.000Z" itemprop="datePublished">2018-04-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/AIX/">AIX</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/04/21/使用dd命令解决AIX系统中PVID的异常丢失问题/">使用dd命令解决AIX系统中PVID的异常丢失问题</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文主要描述在aix环境中，由于pvid异常丢失导致数据丢失的解决办法。</p>
+<p>测试环境：AIX 7100-03-03-1415</p>
+<ol>
+<li><p>测试使用testvg，testvg已经创建文件系统并存放数据               </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"># lspv</span><br><span class="line">hdisk0          00c68ebbc8661d02                    rootvg          active</span><br><span class="line">hdisk1          00c68ebb6f10eb15                    testvg          active</span><br><span class="line">hdisk2          00c68ebb8de4c792                    testvg          active</span><br><span class="line">hdisk3          none                                None</span><br><span class="line"></span><br><span class="line"># lsvg -l testvg</span><br><span class="line">testvg:</span><br><span class="line">LV NAME             TYPE       LPs     PPs     PVs  LV STATE      MOUNT POINT</span><br><span class="line">loglv00             jfs2log    1       1       1    open/syncd    N/A</span><br><span class="line">fslv00              jfs2       4       4       1    open/syncd    /test</span><br><span class="line"># cd /test</span><br><span class="line"># ls -l</span><br><span class="line">total 0</span><br><span class="line">drwxr-xr-x    2 root     system          256 Jun 26 13:11 abc</span><br><span class="line">drwxr-xr-x    2 root     system          256 Jun 26 13:10 lost+found</span><br><span class="line"># cd abc</span><br><span class="line"># ls -l</span><br><span class="line">total 8</span><br><span class="line">-rw-r--r--    1 root     system           23 Jun 26 13:11 test.txt</span><br><span class="line"># cat test.txt</span><br><span class="line">This is a test file!!!</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>以hdisk2为例，列出hdisk2的信息<br>hdisk2在ODM中的信息，此时为00c68ebb8de4c792  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># lspv</span><br><span class="line">hdisk0          00c68ebbc8661d02                    rootvg          active</span><br><span class="line">hdisk1          00c68ebb6f10eb15                    testvg          active</span><br><span class="line">hdisk2          00c68ebb8de4c792                    testvg          active</span><br><span class="line">hdisk3          none                                None</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>hdisk2在vgda中的信息<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"># lqueryvg -Atp hdisk2</span><br><span class="line">Max LVs:        256</span><br><span class="line">PP Size:        27</span><br><span class="line">Free PPs:       1634</span><br><span class="line">LV count:       2</span><br><span class="line">PV count:       2</span><br><span class="line">Total VGDAs:    3</span><br><span class="line">Conc Allowed:   0</span><br><span class="line">MAX PPs per PV: 32768</span><br><span class="line">MAX PVs:        1024</span><br><span class="line">Quorum (disk):  1</span><br><span class="line">Quorum (dd):    1</span><br><span class="line">Auto Varyon ?:  2</span><br><span class="line">Conc Autovaryon 0</span><br><span class="line">Varied on Conc: 0</span><br><span class="line">Logical:        00c68ebb00004c00000001558de6cbe4.1   loglv00 1 </span><br><span class="line">                00c68ebb00004c00000001558de6cbe4.2   fslv00 1 </span><br><span class="line">Physical:       00c68ebb6f10eb15                2   0 </span><br><span class="line">                00c68ebb8de4c792                1   0 </span><br><span class="line">Total PPs:      1639</span><br><span class="line">LTG size:       128</span><br><span class="line">HOT SPARE:      0</span><br><span class="line">AUTO SYNC:      0</span><br><span class="line">VG PERMISSION:  0</span><br><span class="line">SNAPSHOT VG:    0</span><br><span class="line">IS_PRIMARY VG:  0</span><br><span class="line">PSNFSTPP:       139520</span><br><span class="line">VARYON MODE:    0</span><br><span class="line">VG Type:        2</span><br><span class="line">Max PPs:        32768</span><br><span class="line">Mirror Pool Str n</span><br><span class="line">Sys Mgt Mode:   0</span><br><span class="line">VG Reserved:    1</span><br><span class="line">PV RESTRICTION: 0</span><br><span class="line">Infinite Retry: 2</span><br><span class="line">Varyon State:   0</span><br><span class="line">Disk Block Size 512</span><br></pre></td></tr></table></figure></p>
+<p>hdisk2在盘头的显示<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># lquerypv -H /dev/hdisk2</span><br><span class="line">00c68ebb8de4c7920000000000000000</span><br></pre></td></tr></table></figure></p>
+<p>可以看出三者是一致的</p>
+<ol start="2">
+<li>执行破坏性测试<br>执行后，ODM库中的pvid发生了变化，变为00c68ebb8df07242<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># umount /test</span><br><span class="line"># varyoffvg testvg</span><br><span class="line"># chdev -l hdisk2 -a pv=clear</span><br><span class="line">hdisk2 changed</span><br><span class="line"># chdev -l hdisk2 -a pv=yes </span><br><span class="line">hdisk2 changed</span><br><span class="line"># lspv</span><br><span class="line">hdisk0          00c68ebbc8661d02                    rootvg          active     </span><br><span class="line">hdisk1          00c68ebb6f10eb15                    testvg                     </span><br><span class="line">hdisk2          00c68ebb8df07242                    None                       </span><br><span class="line">hdisk3          none                                None</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>但是VGDA中的PVID信息并没有发生变化<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"># lqueryvg -Atp hdisk2</span><br><span class="line">0516-320 lqueryvg: Physical volume hdisk2 is not assigned to</span><br><span class="line">        a volume group.</span><br><span class="line">Max LVs:        256</span><br><span class="line">PP Size:        27</span><br><span class="line">Free PPs:       1634</span><br><span class="line">LV count:       2</span><br><span class="line">PV count:       2</span><br><span class="line">Total VGDAs:    3</span><br><span class="line">Conc Allowed:   0</span><br><span class="line">MAX PPs per PV: 32768</span><br><span class="line">MAX PVs:        1024</span><br><span class="line">Quorum (disk):  1</span><br><span class="line">Quorum (dd):    ???????</span><br><span class="line">Auto Varyon ?:  2</span><br><span class="line">Conc Autovaryon 0</span><br><span class="line">Varied on Conc: 0</span><br><span class="line">Logical:        00c68ebb00004c00000001558de6cbe4.1   loglv00 1 </span><br><span class="line">                00c68ebb00004c00000001558de6cbe4.2   fslv00 1 </span><br><span class="line">Physical:       00c68ebb6f10eb15                2   0 </span><br><span class="line">                00c68ebb8de4c792                1   0 </span><br><span class="line">Total PPs:      1639</span><br><span class="line">LTG size:       128</span><br><span class="line">HOT SPARE:      0</span><br><span class="line">AUTO SYNC:      0</span><br><span class="line">VG PERMISSION:  0</span><br><span class="line">SNAPSHOT VG:    0</span><br><span class="line">IS_PRIMARY VG:  0</span><br><span class="line">PSNFSTPP:       139520</span><br><span class="line">VARYON MODE:    ???????</span><br><span class="line">VG Type:        2</span><br><span class="line">Max PPs:        32768</span><br><span class="line">Mirror Pool Str n</span><br><span class="line">Sys Mgt Mode:   ???????</span><br><span class="line">VG Reserved:    ???????</span><br><span class="line">PV RESTRICTION: ???????</span><br><span class="line">Infinite Retry: 2</span><br><span class="line">Varyon State:   0</span><br><span class="line">Disk Block Size 512</span><br></pre></td></tr></table></figure></p>
+<p>盘头的信息也是发生了变化的<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># lquerypv -H /dev/hdisk2</span><br><span class="line">00c68ebb8df072420000000000000000</span><br></pre></td></tr></table></figure></p>
+<p>此时直接激活卷组，会报如下错误<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># varyonvg testvg</span><br><span class="line">0516-510 varyonvg: Physical volume not found for physical volume</span><br><span class="line">        identifier 00c68ebb8de4c792.</span><br></pre></td></tr></table></figure></p>
+<ol start="3">
+<li>重新将原来的PVID（00c68ebb8de4c792）写入盘头</li>
+</ol>
+<p>先把PVID（00c68ebb8de4c792）转换成8进制，可以使用系统自带的bc命令<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># bc</span><br><span class="line">ibase=16</span><br><span class="line">obase=8</span><br><span class="line">00</span><br><span class="line">0</span><br><span class="line">C6</span><br><span class="line">306</span><br><span class="line">8E</span><br><span class="line">216</span><br><span class="line">BB</span><br><span class="line">273</span><br><span class="line">8D</span><br><span class="line">215</span><br><span class="line">E4</span><br><span class="line">344</span><br><span class="line">C7</span><br><span class="line">307</span><br><span class="line">92</span><br><span class="line">222</span><br></pre></td></tr></table></figure></p>
+<p>转换完成后为：0000 0306 0216 0273 0215 0344 0307 0222</p>
+<p>将数值写入盘头，命令如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#  echo &quot;\0000\0306\0216\0273\0215\0344\0307\0222\c&quot; | dd of=/dev/hdisk2 bs=1 seek=128</span><br><span class="line">8+0 records in.</span><br><span class="line">8+0 records out.</span><br></pre></td></tr></table></figure></p>
+<p>转换成功后，查询盘头正常，odm还是00c68ebb8df07242<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># lquerypv -H /dev/hdisk2</span><br><span class="line">00c68ebb8de4c7920000000000000000</span><br><span class="line"># lspv</span><br><span class="line">hdisk0          00c68ebbc8661d02                    rootvg          active     </span><br><span class="line">hdisk1          00c68ebb6f10eb15                    None                       </span><br><span class="line">hdisk2          00c68ebb8df07242                    None                       </span><br><span class="line">hdisk3          none                                None</span><br></pre></td></tr></table></figure></p>
+<p>此时，盘头和vgda的信息一致了（00c68ebb8de4c792 ），ODM还不一致<br>这时，激活卷组，还是会报错，删除磁盘重新识别<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># rmdev -dl hdisk2</span><br><span class="line">hdisk2 deleted</span><br><span class="line"># cfgmgr</span><br><span class="line"># lspv</span><br><span class="line">hdisk0          00c68ebbc8661d02                    rootvg          active     </span><br><span class="line">hdisk1          00c68ebb6f10eb15                    testvg                         </span><br><span class="line">hdisk2          00c68ebb8de4c792                    None                       </span><br><span class="line">hdisk3          none                                None</span><br></pre></td></tr></table></figure></p>
+<p>重新导入vg，后成功。 检查数据<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"># exportvg testvg</span><br><span class="line"># importvg -y testvg hdisk2</span><br><span class="line">testvg</span><br><span class="line"></span><br><span class="line"># lsvg -l testvg</span><br><span class="line">testvg:</span><br><span class="line">LV NAME             TYPE       LPs     PPs     PVs  LV STATE      MOUNT POINT</span><br><span class="line">loglv00             jfs2log    1       1       1    closed/syncd  N/A</span><br><span class="line">fslv00              jfs2       4       4       1    closed/syncd  /test</span><br><span class="line"># mount /test</span><br><span class="line"># cd /test</span><br><span class="line"># ls -l</span><br><span class="line">total 0</span><br><span class="line">drwxr-xr-x    2 root     system          256 Jun 26 13:11 abc</span><br><span class="line">drwxr-xr-x    2 root     system          256 Jun 26 13:10 lost+found</span><br><span class="line"># cd abc</span><br><span class="line"># ls -l</span><br><span class="line">total 8</span><br><span class="line">-rw-r--r--    1 root     system           23 Jun 26 13:11 test.txt</span><br><span class="line"># cat test.txt</span><br><span class="line">This is a test file!!!</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://wangql.cc/2018/04/21/使用dd命令解决AIX系统中PVID的异常丢失问题/" data-id="cjg9ahi6i0003vwqmfflq0moy" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-修复由hd5分区损坏导致的AIX无法启动的故障“" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/04/21/修复由hd5分区损坏导致的AIX无法启动的故障“/" class="article-date">
+  <time datetime="2018-04-21T10:57:06.000Z" itemprop="datePublished">2018-04-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/AIX/">AIX</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/04/21/修复由hd5分区损坏导致的AIX无法启动的故障“/">修复由hd5分区损坏导致的AIX无法启动的故障“</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>AIX系统中，当系统的引导分区hd5损坏时，会导致系统无法启动，可以通过以下方法进行恢复</p>
+<h1 id="常规修复过程"><a href="#常规修复过程" class="headerlink" title="常规修复过程"></a>常规修复过程</h1><ol>
+<li>通过CD、Tape等，引导系统进入maintenance mode；（注意引导介质的os版本要大于等于当前系统版本）</li>
+<li><p>手工删除目前已损坏的在hdisk0上的hd5（boot引导区）LV：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rmlv hd5</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>清除该硬盘盘头的启动记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chpv -c hdisk0</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建新的hd5，必须要在bootvg中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mklv -y hd5 -t boot -a e rootvg 1</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重新标记启动盘：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bosboot -ad /dev/hdisk0</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>检查实际引导盘：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bootlist -m normal -o</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>同步数据（从内存同步到硬盘）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sync</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重启系统：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">shutdown -Fr</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h1 id="意外处理"><a href="#意外处理" class="headerlink" title="意外处理"></a>意外处理</h1><p>有时候会出现意外情况，执行lsvg -l rootvg已经看不到hd5，但重建的时候会报错，提示已存在，就算执行synclvodm -Pv rootvg也不好使，那么需要执行如下步骤，从odm中清除hd5的信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">odmdelete -q name=hd5 -o CuDv</span><br><span class="line">odmdelete -q name=hd5 -o CuAt</span><br></pre></td></tr></table></figure></p>
+<p>然后按照常规处理章节的过程继续处理即可<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mklv -y hd5 -t boot rootvg 1</span><br><span class="line">bosboot -ad hdisk0</span><br><span class="line">bootlist -m normal hdisk0</span><br></pre></td></tr></table></figure></p>
+<p>完成处理后即可正常启动。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://wangql.cc/2018/04/21/修复由hd5分区损坏导致的AIX无法启动的故障“/" data-id="cjg9ahi6d0001vwqm248r8qrf" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-TSM客户端基于命令行的文件恢复测试" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2018/04/20/TSM客户端基于命令行的文件恢复测试/" class="article-date">
@@ -137,11 +274,9 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://wangql.cc/2018/04/20/TSM客户端基于命令行的文件恢复测试/" data-id="cjg7w7089000024qm1covmcwd" class="article-share-link">Share</a>
+      <a data-url="http://wangql.cc/2018/04/20/TSM客户端基于命令行的文件恢复测试/" data-id="cjg9ahi660000vwqm7li8153p" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/TSM/">TSM</a></li></ul>
-
     </footer>
   </div>
   
@@ -159,30 +294,16 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/备份/">备份</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AIX/">AIX</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/备份/">备份</a></li></ul>
     </div>
   </div>
 
 
   
     
-  <div class="widget-wrap">
-    <h3 class="widget-title">Tags</h3>
-    <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/TSM/">TSM</a></li></ul>
-    </div>
-  </div>
-
 
   
     
-  <div class="widget-wrap">
-    <h3 class="widget-title">Tag Cloud</h3>
-    <div class="widget tagcloud">
-      <a href="/tags/TSM/" style="font-size: 10px;">TSM</a>
-    </div>
-  </div>
-
   
     
   <div class="widget-wrap">
@@ -199,6 +320,14 @@
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2018/04/21/使用dd命令解决AIX系统中PVID的异常丢失问题/">使用dd命令解决AIX系统中PVID的异常丢失问题</a>
+          </li>
+        
+          <li>
+            <a href="/2018/04/21/修复由hd5分区损坏导致的AIX无法启动的故障“/">修复由hd5分区损坏导致的AIX无法启动的故障“</a>
+          </li>
         
           <li>
             <a href="/2018/04/20/TSM客户端基于命令行的文件恢复测试/">TSM客户端基于命令行的文件恢复测试</a>
